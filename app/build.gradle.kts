@@ -12,8 +12,23 @@ plugins {
 }
 
 val lwjglVersion = "3.3.1"
+val lwjglNatives = Pair(
+	System.getProperty("os.name")!!,
+	System.getProperty("os.arch")!!
+).let { (name, arch) ->
+	when {
+		arrayOf("Linux", "FreeBSD", "SunOS", "Unit").any { name.startsWith(it) } ->
+			"natives-linux"
+		arrayOf("Windows").any { name.startsWith(it) }                           ->
+			"natives-windows"
+		arrayOf("Mac").any { name.startsWith(it) }                           ->
+			"natives-macos"
+		else -> throw Error("Unrecognized or unsupported platform. Please set \"lwjglNatives\" manually")
+	}
+}
+
 val jomlVersion = "1.10.5"
-val lwjglNatives = "natives-macos"
+val gsonVersion = "2.10"
 
 repositories {
 	mavenCentral()
@@ -42,6 +57,8 @@ dependencies {
 	runtimeOnly("org.lwjgl", "lwjgl-stb", classifier = lwjglNatives)
 
     implementation("org.joml", "joml", jomlVersion)
+
+	implementation("com.google.code.gson", "gson", gsonVersion)
 }
 
 application {

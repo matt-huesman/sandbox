@@ -15,8 +15,7 @@
             "name": "Launch Main",
             "request": "launch",
             "mainClass": "sandbox.Main",
-            "projectName": "app",
-            "vmArgs": "-XstartOnFirstThread"
+            "projectName": "app"
         }
     ]
 }
