@@ -11,7 +11,7 @@ plugins {
     application
 }
 
-val lwjglVersion = "3.3.1"
+val lwjglVersion = "3.3.3"
 val lwjglNatives = Pair(
 	System.getProperty("os.name")!!,
 	System.getProperty("os.arch")!!
@@ -19,10 +19,10 @@ val lwjglNatives = Pair(
 	when {
 		arrayOf("Linux", "FreeBSD", "SunOS", "Unit").any { name.startsWith(it) } ->
 			"natives-linux"
-		arrayOf("Windows").any { name.startsWith(it) }                           ->
+		arrayOf("Windows").any { name.startsWith(it) } ->
 			"natives-windows"
-		arrayOf("Mac").any { name.startsWith(it) }                           ->
-			"natives-macos"
+		arrayOf("Mac").any { name.startsWith(it) } ->
+			if (arch == "aarch64") "natives-macos-arm64" else "natives-macos"
 		else -> throw Error("Unrecognized or unsupported platform. Please set \"lwjglNatives\" manually")
 	}
 }
@@ -62,11 +62,17 @@ dependencies {
 	implementation("com.google.code.gson", "gson", gsonVersion)
 
 	implementation("org.apache.commons", "commons-lang3", apacheCommonLang3)
+
+	// https://mvnrepository.com/artifact/commons-cli/commons-cli
+	implementation("commons-cli:commons-cli:1.6.0")
 }
 
 application {
     // Define the main class for the application.
-    mainClass.set("sandbox")
+    mainClass.set("sandbox.Main")
+
+	// Add JVM arguments for support on macOS
+	applicationDefaultJvmArgs += listOf("-XstartOnFirstThread")
 }
 
 tasks.named<Test>("test") {

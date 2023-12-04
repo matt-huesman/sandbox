@@ -1,7 +1,4 @@
 {
-    "attributes": [
-        
-    ],
     "vertexShader": "basic",
     "fragmentShader": "basic"
 }

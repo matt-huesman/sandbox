@@ -12,19 +12,18 @@ public class Shader {
         this.type = type;
 
         shaderId = GL20.glCreateShader(type.getGlType());
+        if (shaderId == 0) {
+            throw new RuntimeException("Failed to create shader: " + name + " of type: " + type + "!");
+        }
     }
 
-    public Shader buildShader(String shaderSource) throws Exception {
-        if (shaderId == 0) {
-            throw new Exception("Failed to create shader!");
-        }
-
+    public Shader buildShader(String shaderSource) {
         GL20.glShaderSource(shaderId, shaderSource);
         GL20.glCompileShader(shaderId);
 
         if (GL20.glGetShaderi(shaderId, GL20.GL_COMPILE_STATUS) == 0) {
             throw new RuntimeException(
-                "Error compiling " + type + " shader code: " + GL20.glGetShaderInfoLog(shaderId, 1024)
+                "Error compiling shader: " + name + " of type: " + type + "!\n" + GL20.glGetShaderInfoLog(shaderId, 1024)
             );
         }
 
@@ -51,7 +50,7 @@ public class Shader {
         return type;
     }    
 
-    public void destory() {
+    public void destroy() {
         GL20.glDeleteShader(shaderId);
     }
 }

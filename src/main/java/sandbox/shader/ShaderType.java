@@ -12,12 +12,7 @@ public enum ShaderType {
     private final String extension;
     private final int glType;
 
-    /*
-     * Because we don't want to reload shared shaders across seperate shader programs
-     * shaders are stored in for reuse in their type's list
-     */
-
-    private ShaderType(String type, String extension, int glType) {
+    ShaderType(String type, String extension, int glType) {
         this.type = type;
         this.extension = extension;
         this.glType = glType;

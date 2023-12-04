@@ -3,13 +3,40 @@
  */
 package sandbox;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.lwjgl.glfw.GLFW;
+
 public class Main {
+    private final int windowWidth;
+    private final int windowHeight;
+
     private Main(String[] args) {
-        Sandbox sandbox = new Sandbox(args);
-        sandbox.init();
+        Options options = new Options();
+
+        options.addOption("w", "width", true, "Window Width");
+        options.addOption("h", "height", true, "Window Height");
+
+        CommandLine cmd = null;
+        try {
+            CommandLineParser parser = new DefaultParser();
+            cmd = parser.parse(options, args);
+        } catch (Exception e) {
+            System.err.println("Error parsing command line arguments: " + e.getMessage());
+            System.exit(1);
+        }
+
+        windowWidth = Integer.parseInt(cmd.getOptionValue("w", "800"));
+        windowHeight = Integer.parseInt(cmd.getOptionValue("h", "600"));
+    }
+
+    private void init() {
+        new Sandbox(windowWidth, windowHeight).init();
     }
 
     public static void main(String[] args) {
-        new Main(args);
+        new Main(args).init();
     }
 }

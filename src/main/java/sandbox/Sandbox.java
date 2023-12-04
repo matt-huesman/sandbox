@@ -1,121 +1,96 @@
 package sandbox;
 
-import java.io.IOException;
-import java.nio.FloatBuffer;
+import org.joml.Vector3f;
 
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL15;
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL30;
-import org.lwjgl.system.MemoryUtil;
-
+import sandbox.render.Renderer;
+import sandbox.render.VertexDataBuffer;
 import sandbox.shader.ShaderManager;
-import sandbox.shader.ShaderProgram;
 
 public class Sandbox {
     private final Window window;
-
     private final ShaderManager shaderManager;
+    private final Renderer renderer;
 
+    private long frame;
     private boolean running = true;
 
-    /**
-     * Render engine:
-     * 
-     * Render manager holds all object renderers
-     *  - Terrain renderer (static objects)
-     *  - Entity renderer (dynamic objects)
-     *  - Player renderer (HUD & player model)
-     * 
-     * Game Loading Phase
-     *  1. Load shaders, textures, models, and material / entity metadata
-     *  2. Associate textures, models, and metadata into materials / entities
-     * 
-     * SuperChunk Background Loading
-     *  3. Load world file containing metadata, chunk changes, saved entities, and chunk changes
-     *  4. Build chunk instances from chunk data within the specified chunk loading range
-     * 
-     * 
-     * 8. World filters loaded chunks by visibility and builds verticies to vbo and vao
-     * 9. World renderer takes vao objects from world and renders them with generic shader
-     */
-
+    // Temporary square data
     private final float[] vertices = {
-        -0.5f, -0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
-         0.0f,  0.5f, 0.0f
+        0.5f,  0.5f, 0.0f,  // top right
+        0.5f, -0.5f, 0.0f,  // bottom right
+        -0.5f, -0.5f, 0.0f,  // bottom left
+        -0.5f,  0.5f, 0.0f   // top left
+    };
+    private final  int[] indices = {  // note that we start from 0!
+        0, 1, 3,   // first triangle
+        1, 2, 3    // second triangle
     };
 
-    // Used for passing application arguments and instantiating
-    public Sandbox(String[] args) {
-        window = new Window(800, 600, "Hello World!");
-
+    // Used for passing application arguments and instantiating application objects
+    public Sandbox(int windowWidth, int windowHeight) {
+        window = new Window(windowWidth, windowHeight, "Sandbox");
         shaderManager = new ShaderManager();
+        renderer = new Renderer(window);
     }
 
-    // Used for initial program logic
-    public Sandbox init() {
-        try {
-            window.init();
-        } catch (Exception e) {
-            e.printStackTrace(System.err);
-            stop();
-        }
+    // Used for program initialization logic
+    public void init() {
+        window.init();
+        renderer.init();
 
         try {
             shaderManager.loadShaderProgram("basic");
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
         }
 
+        shaderManager.earlyCleanUp();
+        window.showWindow();
         gameLoop();
-
-        return this;
     }
 
+    // Used for the main game loop
     private void gameLoop() {
-        int vao = GL30.glGenVertexArrays();
-        int vbo = GL15.glGenBuffers();
+        /*
+         * TODO: Solution: load each model into a single VAO at the beginning of the program
+         *  - Hold shader programs responsible for a single draw call for a particular VAO
+         */
+        // Renderer -> Shader -> ECS -> Mesh
+        // Renderer goes through each shader and calls the render method for each shader while passing in the ECS
+        // Shader calculates the MVP matrix and loads all it's required uniforms
+        // Shader calls ECS to get all Entities within view that rely on that shader using a mapping
+        // Each Entity is looped through and the Mesh is bound and rendered through the Mesh
 
-        GL30.glBindVertexArray(vao);
-
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
-        FloatBuffer verticesBuffer = MemoryUtil.memAllocFloat(vertices.length);
-        verticesBuffer.put(vertices).flip();
-        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, verticesBuffer, GL15.GL_STATIC_DRAW);
-
-        GL30.glVertexAttribPointer(0, 3, GL11.GL_FLOAT, false, 0, 0);
-        GL30.glEnableVertexAttribArray(0);  
-
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-        GL30.glBindVertexArray(0);
-
-        MemoryUtil.memFree(verticesBuffer);
+        VertexDataBuffer vertexDataBuffer = new VertexDataBuffer(vertices, indices);
 
         while (running) {
-            // Clear the current framebuffer
-            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-            // Swap color buffers
+            vertexDataBuffer.bind();
 
-            shaderManager.useShaderProgram("basic");
+            // TODO: Delegate this to the ECS
+            shaderManager.useShaderProgram(frame,"basic", (shaderProgram) -> {
+                shaderProgram.setUniform("u_scale", new Vector3f((float) Math.random(), (float) Math.random(), (float) Math.random()));
+                renderer.prerender();
+                renderer.render(frame, shaderManager);
+            });
 
-            GL30.glBindVertexArray(vao);
-
-            GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, 3);
+            vertexDataBuffer.unbind();
 
             update();
         }
 
-        GL15.glDeleteBuffers(vbo);
-        GL30.glDeleteVertexArrays(vao);
-
+        vertexDataBuffer.destroy();
         stop();
     }
 
     private void update() {
         window.update();
 
-        running = !window.closeRequested();
+        frame ++;
+        frame %= Long.MAX_VALUE;
+
+        if (window.closeRequested()) {
+            running = false;
+        }
     }
 
     private void stop() {
